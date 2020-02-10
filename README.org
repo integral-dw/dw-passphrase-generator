@@ -1,0 +1,12 @@
+#+TITLE: ~dw~
+
+* ~dw~: A Diceware Passphrase Generator for Emacs
+
+  Hi, this is a placeholder for an old project I am meaning to clean
+  up.  By the time this is public, I will have added actual code.
+  Just don't be confused when this repo hasn't been touched for
+  weeks/months/years after the initial commits.
+
+
+
+#  LocalWords:  repo
