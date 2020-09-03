@@ -5,7 +5,7 @@
 ;; Author: D. Williams <d.williams@posteo.net>
 ;; Maintainer: D. Williams <d.williams@posteo.net>
 ;; Keywords: convenience
-;; Version: 0.2.0
+;; Version: 0.3.0
 ;; Homepage: https://github.com/integral-dw/dw-passphase-generator
 ;; Package-Requires: ((emacs "25.1"))
 
@@ -34,6 +34,7 @@
 ;;; Code:
 
 (require 'seq)
+(require 'wid-edit)
 
 (defgroup dw nil
   "Generate diceware passphrases."
@@ -64,6 +65,13 @@
 (define-error 'dw-missing-entry
   "Broken wordlist, missing entry for dice roll"
   'dw-bad-wordlist)
+;; Misc RNG Errors
+(define-error 'dw-incomplete-int
+  "Not enough die rolls for the given integer range"
+  'dw-bad-roll)
+(define-error 'dw-overflow
+  "Too many consecutive die rolls, not implemented"
+  'range-error)
 
 ;;; Package-specific warnings
 
@@ -78,10 +86,16 @@
 (defconst dw--dice-number 5
   "Number of die rolls needed for one word in a passphrase.")
 
+(defconst dw--conversion-limit (floor (log most-positive-fixnum 6))
+  "Length of the largest string that allows direct integer conversion.
+For the time being, this constant also governs the maximum number
+of dice usable to generate a random integer with ‘dw-generate-ranint’.")
+
 (defconst dw--wordlist-length (expt 6 dw--dice-number)
   "Number of entries needed for a valid wordlist.")
 
 ;;; User-facing variables
+;; Core API
 
 (defcustom dw-ignore-regexp "\\s-+"
   "Regular expression to match a sequence of separator chars.
@@ -109,13 +123,89 @@ appropriate warning."
   :type 'float
   :group 'dw)
 
+;; Extended passphrase generation
+
+;;;###autoload
+(put 'dw-extra-char-string 'risky-local-variable t)
+(defcustom dw-extra-char-string "945678^~!#$%=&*()-}+[]\\{>:;\"'<3?/012"
+  "String of extra characters that can be added to a passphrase.
+
+Every character should be unique.  Additionally, the string
+should be no longer than 36 (6^2) characters."
+  :type '(string
+          :validate dw--validate-extra-char-string)
+  :risky
+  :group 'dw)
+
+(defun dw--validate-extra-char-string (text-field)
+  "Raise an error if TEXT-FIELD’s value is invalid for ‘dw-extra-char-string’.
+If the string exceeds the maximal allowed length (or contains
+redundant characters), remove excess chars and raise an error."
+  (let* ((extra-string (widget-value text-field))
+         (minimized-extra-string (concat (seq-uniq extra-string)))
+         has-error)
+    (unless (string= extra-string minimized-extra-string)
+      (setq extra-string minimized-extra-string)
+      (widget-put text-field :error "Characters must be unique in string")
+      (setq has-error t))
+    (unless (< (length extra-string) 36)
+      (setq extra-string (substring extra-string 0 36))
+      (widget-put text-field :error "String length must not exceed 36")
+      (setq has-error t))
+    (when has-error
+      (widget-value-set text-field extra-string)
+      text-field)))
+
+;;;###autoload
+(put 'dw-directory 'risky-local-variable t)
+(defcustom dw-directory (locate-user-emacs-file "diceware")
+  "Default directory for diceware wordlists for interactive functions.
+If this directory is not present, it is automatically generated."
+  :type 'directory
+  :risky
+  :group 'dw)
+;; TODO: auto-generate when set
+
+;; Quietly generate dir if it is missing.
+(condition-case nil
+    (make-directory dw-directory)
+  (file-already-exists))
+
+(defcustom dw-named-wordlists nil
+  "Alist of personal wordlists for interactive use.
+
+Each element is a dotted list of the form
+\(NAME FILE . CODING)
+
+where NAME is the wordlist’s name used interactively (a symbol),
+FILE is a string containing the actual filename of the wordlist
+and CODING is the encoding of the file, nil being equivalent to
+`utf-8'.
+
+NAME is what interactive commands will query for to access a
+particular wordlist.
+
+FILE, if relative, is relative to ‘dw-directory’."
+  :type '(alist
+          :key-type (symbol :format "Wordlist name: %v" :value default)
+          :value-type
+          (cons (string :format "Wordlist file: %v")
+                (choice
+                 :format "Coding: %[Value Menu%] %v"
+                 (const :tag "Default (‘utf-8’)" nil)
+                 (coding-system
+                  :tag "Other coding system")))) ;; TODO: validate string argument
+  :group 'dw)
+
 ;;; Internal predicates
 
-(defun dw--valid-rolls-p (string)
-  "Return t if STRING is a nonempty sequence of digits from 1 to 6."
+(defun dw--valid-rolls-p (string &optional allow-empty)
+  "Return t if STRING is a sequence of digits from 1 to 6.
+If the optional second argument ALLOW-EMPTY is non-nil, then
+treat empty strings as valid."
   (and (stringp string)
-       (not (seq-empty-p string))
-       (not (seq-difference string "123456"))))
+       (or allow-empty (not (seq-empty-p string)))
+       (not (dw--invalid-chars-list string))))
 
 
 ;;; Internal string processing
@@ -126,6 +216,12 @@ Which chars constitute as such is governed by
 ‘dw-ignore-regexp’."
   (replace-regexp-in-string
    dw-ignore-regexp "" string))
+
+(defun dw--invalid-chars-list string
+  "Return a list of invalid die rolls in STRING.
+The resulting list contains all characters that are not digits
+from 1 to 6."
+  (seq-difference string "123456"))
 
 (defun dw--internalize-rolls (string)
   "Convert a STRING of dice rolls to a base-6 int."
@@ -161,7 +257,7 @@ nil for invalid strings instead of signaling an error."
                 `(dw-incomplete-roll 0 ,dw--dice-number))
         (setq error-data
               `(dw-bad-roll
-                ,(char-to-string (car (seq-difference string "123456")))))))
+                ,(char-to-string (car (dw--invalid-chars-list string)))))))
     (unless (= (% total-rolls dw--dice-number) 0)
       (setq error-data
             `(dw-incomplete-roll
@@ -323,7 +419,6 @@ either invalid or incomplete."
            (lambda (x y) (< (car x) (car y))))
      noerror)))
 
-
 (defun dw-generate-passlist (string alist &optional noerror)
   "Generate a list of words from a STRING of dice rolls.
 ALIST should be an internalized wordlist generated by
@@ -338,6 +433,66 @@ invalid or incomplete."
            (dw--parse-string string noerror)
            noerror)))
 
+(defun dw-required-dice (n)
+  "Minimum number of dice to randomly choose between N possible outcomes."
+  (ceiling (log n 6)))
+
+(defun dw-generate-ranint (string maxint &optional noerror)
+  "Convert STRING of dicerolls to a random int from 0 to MAXINT.
+STRING is expected to be a sequence of dicerolls.
+MAXINT is not included in the random number range.
+If STRING does not produce a valid value, return -1.
+
+STRING must contain at least log6(MAXINT) die rolls, rounded up.
+It may contain more, however (up to a machine-dependent limit).
+
+Unless MAXINT divides a power of 6, there is no way to map all
+outcomes N dice can produce evenly and exhaustively at the same
+time.  Hence, on occasion random number generation will fail,
+producing -1 as an outcome.  Since the failure chance can reach
+up to 50%, it is recommended to choose an appropriate MAXINT.
+
+If the optional third argument NOERROR is non-nil, then return
+nil instead of raising an error in case of STRING."
+
+  (let* ((string (dw--strip-separators string))
+         (dice-num (length string))
+         (min-dice (dw-required-dice string))
+         (random-int -1)
+         error-data)
+    (cond ((< dice-num min-dice)
+           (setq error-data
+                 `(dw-incomplete-int ,dice-num ,min-dice)))
+          ((not (dw--valid-rolls-p string))
+           (setq error-data
+                 `(dw-bad-roll
+                   ,(char-to-string (car (dw--invalid-chars-list string))))))
+          ;; Does the entire dice string fit into a fixnum int?
+          ((< dice-num dw--conversion-limit)
+           (setq random-int (dw--internalize-rolls string))
+           (unless (< random-int (% (expt 6 dice-num) random-int))
+             (setq random-int (% random-int dice-num))))
+          ;; With bignums in Emacs 27.1, I could in principle rely on
+          ;; arbitrary integer artithmetic.  However, using bignums
+          ;; for this is immensely wasteful, especially since this can
+          ;; easily be done with fixnums using simple modulo
+          ;; arithmetic.  However, it's a feature not worth needlessly
+          ;; implementing, especially since this package has a history
+          ;; of accumulating needless complexity.  I'll support it
+          ;; once someone opens an issue.
+          (t
+           (setq error-data
+                 `(dw-overflow ,dice-num ,dw--conversion-limit))))
+
+    (when (and error-data (not noerror))
+      (error-data
+       (signal (car error-data) (cdr error-data))))
+
+    random-int))
+
+
+;;; Interactive commands
+;; dw-set-alist
 
 (provide 'dw)
 ;;; dw.el ends here
