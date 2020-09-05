@@ -5,7 +5,7 @@
 ;; Author: D. Williams <d.williams@posteo.net>
 ;; Maintainer: D. Williams <d.williams@posteo.net>
 ;; Keywords: convenience
-;; Version: 0.3.0
+;; Version: 0.4.0
 ;; Homepage: https://github.com/integral-dw/dw-passphase-generator
 ;; Package-Requires: ((emacs "25.1"))
 
@@ -24,8 +24,14 @@
 
 ;;; Commentary:
 
+;; This package implements Arnold G. Reinhold's diceware method for
+;; Emacs.  For more information regarding diceware, see
+;; http://world.std.com/~reinhold/diceware.html
+
 ;; Apart from the listed requirements, this package requires (ideally)
 ;; one or more casino-grade dice for true random number generation.
+
+;; Diceware (C) 1995-2020 Arnold G. Reinhold
 
 ;;; Code:
 
@@ -112,16 +118,6 @@ public parts of the API to signal an error by default."
   :type 'integer
   :group 'dw)
 
-;; TODO: check back with diceware FAQ.
-(defcustom dw-minimum-chars-per-word 3.8
-  "Minimum number of characters a good passphrase should have per word.
-
-Generating any passphrase shorter than this value (times the
-number of words) will cause public parts of the API to report an
-appropriate warning."
-  :type 'float
-  :group 'dw)
-
 ;; Extended passphrase generation
 ;;;###autoload
 (put 'dw-extra-char-string 'risky-local-variable t)
@@ -132,7 +128,7 @@ Every character should be unique.  Additionally, the string
 should be no longer than 36 (6^2) characters."
   :type '(string
           :validate dw--validate-extra-char-string)
-  :risky
+  :risky t
   :group 'dw)
 
 (defun dw--validate-extra-char-string (text-field)
@@ -161,19 +157,13 @@ redundant characters), remove excess chars and raise an error."
   "Default directory for diceware wordlists for interactive functions.
 If this directory is not present, it is automatically generated."
   :type 'directory
-  :risky
+  :risky t
   :set (lambda (symbol value)
-         (dw--generate-directory)
+         (condition-case nil
+             (make-directory value)
+           (file-already-exists))
          (set-default symbol value))
   :group 'dw)
-
-(defun dw--generate-directory ()
-  "Quietly generate ‘dw-directory’ if it is missing."
-  (condition-case nil
-      (make-directory dw-directory)
-    (file-already-exists)))
-
-(dw--generate-directory)
 
 (defcustom dw-named-wordlists nil
   "Alist of personal wordlists for interactive use.
@@ -192,7 +182,7 @@ particular wordlist.
 If a wordlist has the special name ‘default’, interactive
 commands will use it by default instead of prompting.  Similarly,
 if the alist has only one entry, that wordlist is treated as the
-deault wordlist, regardless of the name.
+default wordlist, regardless of the name.
 
 FILE, if relative, is relative to ‘dw-directory’."
   :type '(alist
@@ -211,14 +201,14 @@ FILE, if relative, is relative to ‘dw-directory’."
 It is generally not recommended to drop separators (using the
 empty string), but possible.  Either way, it is best to decide
 for one way to do it and stick to that."
-  :type (string :value "\s")
+  :type '(string :value "\s")
   :group 'dw)
 
 (defcustom dw-capitalize-words nil
   "Non-nil means capitalize words in interactively generated passphrases."
-  :type (choice :format "Word capitalization: %[Options%]"
-                (const :tag "Off" nil)
-                (const :tag "On" t)))
+  :type '(choice :format "Word capitalization: %[Options%]"
+                 (const :tag "Off" nil)
+                 (const :tag "On" t)))
 
 (defvar dw-current-wordlist nil
   "Current internalized wordlist for interactive use.
@@ -239,7 +229,7 @@ treat empty strings as valid."
 ;;; Internal string processing
 
 (defun dw--strip-separators (string)
-  "Remove seperator chars from STRING.
+  "Remove separator chars from STRING.
 Which chars constitute as such is governed by
 ‘dw-ignore-regexp’."
   (replace-regexp-in-string
@@ -368,7 +358,22 @@ nil instead of raising an error for an unusable PASSLIST."
      ((< word-count dw-minimum-word-count)
       (setq error-data
             `(dw-too-short-passphrase ,word-count ,dw-minimum-word-count)))
-     ((< pass-length (* word-count dw-minimum-chars-per-word))
+     ;; Taking the estimate from the website (that trying to
+     ;; brute-force the wordlist should be more efficient than the
+     ;; easier to come up with method of trying every passphrase up to
+     ;; the length L of the passphrase) would give one the following
+     ;; estimate (for N words in a phrase and an alphabet of size A):
+     ;;
+     ;; 6^(5N) ≤ 1 + A^1 + A^2 + ... + A^(L-1) = (A^L - 1)/(A - 1)
+     ;;
+     ;; This yields
+     ;;
+     ;; L ≥ 5N/log6(A) + log6(A - 1)/Log6(A) ≈ 5N/log6(A) + 1.
+     ;;
+     ;; Assuming A=27 (latin alphabet + SPC), you get the below.  This is
+     ;; slightly more strict for 8 words, but I can reason this one
+     ;; more confidently.  Also, this one does not account for spaces...
+     ((< pass-length (round (1+ (* word-count 2.72))))
       (dw--warn-short-words)))
     (cond ((and error-data noerror)
            nil)
@@ -585,9 +590,9 @@ wordlist to use."
                   dw-named-wordlists)))
           file (cadr wordlist-entry)
           coding (cddr wordlist-entry)
-          dw-current-alist (dw-build-alist file dw-directory coding))
-    name))
+          dw-current-wordlist (dw-build-alist file dw-directory coding))))
 
+;;;###autoload
 (defun dw-passgen-region (start end &optional choose-wordlist)
   "Replace diceroll sequence in region with corresponding passphrase.
 
@@ -603,14 +608,19 @@ region to use for passphrase generation."
   ;;TODO: document prefix arg better
   (interactive "r\nP")
 
-  ;; (unless (and start end (/= start end))
-  ;;   (user-error "Cannot generate passphrase: empty region"))
+  (when (= start end)
+    (user-error "Cannot generate passphrase: empty region"))
 
   (let* ((strfun (when dw-capitalize-words #'capitalize))
          (dice-string (buffer-substring-no-properties start end))
          passphrase)
 
     (dw-set-alist (not choose-wordlist))
+    (setq passphrase
+          (dw-generate-passphrase dice-string
+                                  dw-current-wordlist
+                                  dw-separator
+                                  strfun))
     (delete-region start end)
     (insert passphrase)
     passphrase))
