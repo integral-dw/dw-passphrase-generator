@@ -104,7 +104,7 @@ of dice usable to generate a random integer with ‘dw-generate-ranint’.")
 (defcustom dw-ignore-regexp "\\s-+"
   "Regular expression to match a sequence of separator chars.
 Essentially, this regexp defines which chars (apart from the
-numerals 1 to 6) are valid to appear in dice roll stings.
+numerals 1 to 6) are valid to appear in dice roll strings.
 Allowing separators serves as a convenience for the user to be
 able to keep long sequences of dice rolls readable on input."
   :type 'regexp
@@ -460,10 +460,10 @@ actual passphrase.
 If the optional third argument NOERROR is non-nil, then return
 nil instead of raising an error in case of STRING being either
 invalid or incomplete."
-  (mapcar (lambda (x) (cdr (assq x alist)))
-          (dw--check-passlist
-           (dw--parse-string string noerror)
-           noerror)))
+  (dw--check-passlist
+   (mapcar (lambda (x) (cdr (assq x alist)))
+           (dw--parse-string string noerror))
+   noerror))
 
 (defun dw-generate-passphrase (string alist &optional separator strfun)
   "Convert a STRING of dice rolls to a complete passphrase.
