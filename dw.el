@@ -1,10 +1,10 @@
-;;; dw.el --- Diceware passphrase generation commands and API  -*- lexical-binding: t; -*-
+;;; dw.el --- Diceware passphrase generation commands  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2020  D. Williams
 
 ;; Author: D. Williams <d.williams@posteo.net>
 ;; Maintainer: D. Williams <d.williams@posteo.net>
-;; Keywords: convenience
+;; Keywords: convenience, games
 ;; Version: 0.4.0
 ;; Homepage: https://github.com/integral-dw/dw-passphase-generator
 ;; Package-Requires: ((emacs "25.1"))
@@ -101,9 +101,9 @@ of dice usable to generate a random integer with ‘dw-generate-ranint’.")
 ;;; User-facing variables
 ;; Core API
 
-(defcustom dw-ignore-regexp "\\s-+"
-  "Regular expression to match a sequence of separator chars.
-Essentially, this regexp defines which chars (apart from the
+(defcustom dw-separator-regexp "\\s-"
+  "Regular expression to match a single separator character.
+Essentially, this regexp defines which characters (apart from the
 numerals 1 to 6) are valid to appear in dice roll strings.
 Allowing separators serves as a convenience for the user to be
 able to keep long sequences of dice rolls readable on input."
@@ -114,11 +114,29 @@ able to keep long sequences of dice rolls readable on input."
   "Minimum length of a good passphrase (measured in words rolled).
 
 Generating any passphrase shorter than this value will cause
-public parts of the API to signal an error by default."
-  :type 'integer
+public parts of the API to signal an error by default.
+
+It is generally a bad idea to set this value any lower than 5, as
+permitting any shorter passphrase renders diceware passphrase
+generation pointless.  It may however be reasonable to set it to
+6, the commonly recommended minimum passphrase length."
+  :type '(choice
+          :format "Minimum security level: %[Value Menu%] %v"
+          (const :format "%t (%v words)"
+                 :tag "lax" 5)
+          (const :format "%t (%v words)"
+                 :tag "moderate" 6)
+          (const :format "%t (%v words)"
+                 :tag "high" 7)
+          (const :format "%t (%v words)"
+                 :tag "too high to justify using this package" 8)
+          (const :format "%t (%v words)"
+                 :tag "I actually roll paper abstracts" 9))
   :group 'dw)
 
 ;; Extended passphrase generation
+
+;; FIXME: This one does not do anything yet.
 ;;;###autoload
 (put 'dw-extra-char-string 'risky-local-variable t)
 (defcustom dw-extra-char-string "945678^~!#$%=&*()-}+[]\\{>:;\"'<3?/012"
@@ -196,7 +214,7 @@ FILE, if relative, is relative to ‘dw-directory’."
                   :tag "Other coding system")))) ;; TODO: validate string argument
   :group 'dw)
 
-(defcustom dw-separator "\s"
+(defcustom dw-passphrase-separator "\s"
   "String inserted between words in interactively generated passphrases.
 It is generally not recommended to drop separators (using the
 empty string), but possible.  Either way, it is best to decide
@@ -231,9 +249,9 @@ treat empty strings as valid."
 (defun dw--strip-separators (string)
   "Remove separator chars from STRING.
 Which chars constitute as such is governed by
-‘dw-ignore-regexp’."
+‘dw-separator-regexp’."
   (replace-regexp-in-string
-   dw-ignore-regexp "" string))
+   dw-separator-regexp "" string))
 
 (defun dw--invalid-chars-list (string)
   "Return a list of invalid die rolls in STRING.
@@ -261,7 +279,7 @@ from 1 to 6."
   "Parse a USER-STRING of dice rolls.
 
 USER-STRING is stripped of junk chars specified by
-‘dw-ignore-regexp’ and then converted into a list of keys for an
+‘dw-separator-regexp’ and then converted into a list of keys for an
 internalized diceware wordlist (an alist).
 
 If the optional second argument NOERROR is non-nil, then return
@@ -566,21 +584,35 @@ Returns the name of the wordlist as a string."
     (add-to-history 'dw--wordlist-history symbol-string)
     (intern symbol-string)))
 
+(defun dw--prompt-wordlist-file ()
+  "Read a wordlist filename, with completion.
+Return a mockup entry of ‘dw-named-wordlists’ for internal
+processing."
+  (let ((file-name
+         (read-file-name "Read wordlist file: " dw-directory nil t)))
+    (unless (file-regular-p file-name)
+      (user-error "File \"%s\" is not a valid wordlist"
+                  file-name))
+    (message "%s %s" "To automate wordlist selection, see"
+             "‘dw-named-wordlists’.")
+    (list 'ad-hoc file-name)))
+
 (defun dw-set-alist (&optional use-default)
   "Set a named wordlist for interactive passphrase generation.
 
-Named wordlists are specified by ‘dw-named-wordlists’.
+Named wordlists are specified by ‘dw-named-wordlists’.  If
+‘dw-named-wordlists’ is nil, prompt for a file to use, with
+‘dw-directory’ as the default directory.
 
 If the prefix argument USE-DEFAULT is non-nil, use the default
 wordlist, if available.  Otherwise, prompt the user for which
 wordlist to use."
   (interactive "P")
-  (unless dw-named-wordlists
-    (user-error "Please add a wordlist before generating passphrases"
-                'dw-named-wordlists))
   (let (wordlist-entry file coding)
     (setq wordlist-entry
-          (cond ((= (length dw-named-wordlists) 1)
+          (cond ((null dw-named-wordlists)
+                 (dw--prompt-wordlist-file))
+                ((= (length dw-named-wordlists) 1)
                  (car dw-named-wordlists))
                 ((and use-default
                       (assq 'default dw-named-wordlists)))
@@ -619,7 +651,7 @@ region to use for passphrase generation."
     (setq passphrase
           (dw-generate-passphrase dice-string
                                   dw-current-wordlist
-                                  dw-separator
+                                  dw-passphrase-separator
                                   strfun))
     (delete-region start end)
     (insert passphrase)
