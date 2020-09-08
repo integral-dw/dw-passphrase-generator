@@ -1,12 +1,85 @@
-#+TITLE: ~dw~
+#+TITLE: ~dw~: A Diceware Passphrase Generator for Emacs
+#+STARTUP: showeverything
 
-* ~dw~: A Diceware Passphrase Generator for Emacs
+* About
+  This package provides a basic implementation of the [[http://world.std.com/~reinhold/diceware.html][diceware]] method
+  of passphrase generation, by Arnold G. Reinhold.
 
-  Hi, this is a placeholder for an old project I am meaning to clean
-  up.  By the time this is public, I will have added actual code.
-  Just don't be confused when this repo hasn't been touched for
-  weeks/months/years after the initial commits.
+* How to use this package
 
+* Installation
 
+  Since this packages relies on external files, a minimum installation
+  requires two (plus a third, optional) steps:
 
-#  LocalWords:  repo
+  1) Put =dw.el= into your load path.
+  2) Put a wordlist for passphrase generation into the directory
+     specified by ~dw-directory~ (see the section *Customization* for
+     more).  You can find English wordlists [[https://www.eff.org/files/2016/07/18/eff_large_wordlist.txt][here]] and [[http://world.std.com/%7Ereinhold/diceware.wordlist.asc][here]].  The former
+     generates passphrases with long, common words while the latter
+     favors short words and letter combinations, which may be harder
+     to remember but quicker to type.  You can find wordlists for many
+     other languages [[http://world.std.com/~reinhold/diceware.html#Diceware%20in%20Other%20Languages|outline][here]].  See the section *Wordlists* for more details
+     on what kind of wordlists =dw= expects.
+  3) /(optional)/ Set up ~dw-named-wordlists~ (see below).
+
+* How to use this package
+
+* Customization
+
+** ~dw-directory~
+   The wordlist directory.  Upon load, this package automatically
+   generates whichever directory this variable is set to, if it
+   doesn't exist yet.  The default directory is =~/.emacs.d/diceware=,
+   or a system-specific equivalent thereof.  You can either customize
+   or set this variable manually.
+
+   *Note:* Setting this variable outside of custom (for example with
+   ~setq~) must be done /before/ the package is loaded if you want to have
+   the directory auto-generated.  Otherwise, =dw= will generate the
+   default directory instead.
+
+** ~dw-named-wordlists~
+   By default, ~dw-passgen-region~ will prompt you for a wordlist file
+   to use.  However, most of the time you'll want to use the same
+   wordlist.  For this reason, this package lets you define /named
+   wordlists/ to speed up the selection process.
+
+   ~dw-named-wordlists~ is an association list where each entry is of
+   the form ~(NAME FILE . CODING)~ or simply ~(NAME FILE)~.  ~NAME~ should
+   be a symbol.  ~FILE~ should be the filename of the wordlist, either
+   relative to ~dw-directory~ or absolute.  ~CODING~ should be the
+   encoding of the file, with ~nil~ being treated as ~utf-8~.
+
+   The symbol ~default~ is a special wordlist name: if used, this
+   wordlist will be selected by default without prompting the user.
+
+** ~dw-separator-regexp~
+   Regular expression matching a single separator character.  All
+   characters matching this regexp are ignored when reading die rolls,
+   making them valid separators for noting down.  Separators are
+   useful for visually grouping die rolls.  For example, the string
+
+   "13524 23621 63622"
+
+   is more clearly a set of 15 die rolls than "135242362163622".
+   Customize this value to include whichever characters you fancy.
+   For example, use ~"\\(\\s-\\|[.,-]\\)"~ to also allow for periods,
+   dashes and commas.
+
+** ~dw-minimum-word-count~
+   As technology marches on, passphrases need to become harder to
+   guess to prove effective.  This variable ensures that you don't
+   create an insufficiently long passphrase by accident.  The current
+   value is 5, corresponding to the number of words of a sub-par
+   passphrase.  You may want to set this value to 6 to be on the safe
+   side.
+
+   *Note:* There is no real point in setting this variable any lower (or
+   higher) than 5-6.  You would either render the passphrase insecure
+   by admitting smaller passphrases (useless), or create such
+   ridiculously high-security passphrases that the weakest link in
+   your security shifted elsewhere: /A fifth bolt on your front door
+   won't do you any good if you keep your ground floor windows open./
+
+#  LocalWords:  wordlist wordlists
