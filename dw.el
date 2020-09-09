@@ -228,6 +228,9 @@ for one way to do it and stick to that."
                  (const :tag "Off" nil)
                  (const :tag "On" t)))
 
+
+;;; Internal variables
+
 (defvar dw-current-wordlist nil
   "Current internalized wordlist for interactive use.
 This variable does not need to set manually.")
