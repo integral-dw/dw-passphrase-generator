@@ -1,9 +1,18 @@
 #+TITLE: ~dw~: A Diceware Passphrase Generator for Emacs
-#+STARTUP: showeverything
+#+STARTUP: showall
 
 [[file:https://imgs.xkcd.com/comics/password_strength.png]]
 
+* Table of Contents
+  * [[#About][About]]
+  * [[#how-to-use-this-package][How to use this package]]
+  * [[#Installation][Installation]]
+  * [[#Customization][Customization]]
+
 * About
+  :PROPERTIES:
+  :CUSTOM_ID: About
+  :END:
   This package provides a basic implementation of the [[http://world.std.com/~reinhold/diceware.html][diceware]] method
   of passphrase generation, by Arnold G. Reinhold.  If you are new to
   diceware, *please read the subsections below, or check out the link
@@ -36,7 +45,7 @@
    as it just means having to roll more words for the same security.
    While there are fancy wordlists in PDF and other formats, ~dw~ is
    limited to plain text.  Here is a small excerpt from one of the
-   wordlists linked in the *Installation* section, as a simple example
+   wordlists linked in the [[#Installation][Installation]] section, as a simple example
    of how a wordlist looks like:
 
    #+begin_example
@@ -98,7 +107,10 @@
    example coins).
 
 * How to use this package
-  Once the package is set up (see *Installation*), using it boils down
+  :PROPERTIES:
+  :CUSTOM_ID: how-to-use-this-package
+  :END:
+  Once the package is set up (see [[#Installation][Installation]]), using it boils down
   two three simple steps:
 
   1) Open a temporary buffer. For example, =C-x b dice RET= opens a
@@ -113,7 +125,7 @@
      amount for normal passphrases).
   3) Mark the region where you wrote down your sequence of rolls and
      execute =M-x dw-passgen-region=.  You may need to choose a wordlist
-     depending on your setup (see *Customization* below for how to skip
+     depending on your setup (see [[#Customization][Customization]] below for how to skip
      this step and set up a default wordlist).
 
      And you're done!  Copy the passphrase into a safe location, kill
@@ -122,23 +134,29 @@
      other sensitive documents.
 
 * Installation
+  :PROPERTIES:
+  :CUSTOM_ID: Installation
+  :END:
 
   Since this packages relies on external files, a minimum installation
   requires two (plus a third, optional) steps:
 
   1) Put =dw.el= into your load path.
   2) Put a wordlist for passphrase generation into the directory
-     specified by ~dw-directory~ (see the section *Customization* for
+     specified by ~dw-directory~ (see the section [[#Customization][Customization]] for
      more).  You can find English wordlists [[https://www.eff.org/files/2016/07/18/eff_large_wordlist.txt][here]] and [[http://world.std.com/%7Ereinhold/diceware.wordlist.asc][here]].  The former
      generates passphrases with long, common words while the latter
      favors short words and letter combinations, which may be harder
      to remember but quicker to type.  You can find wordlists for many
-     other languages [[http://world.std.com/~reinhold/diceware.html#Diceware%20in%20Other%20Languages|outline][here]].  See the section *Wordlists* for more details
+     other languages [[http://world.std.com/~reinhold/diceware.html#Diceware%20in%20Other%20Languages|outline][here]].  See the section [[Wordlists]] for more details
      on what kind of wordlists =dw= expects.
   3) /(optional)/ Set up ~dw-named-wordlists~ (see the section
-     *Customization* below).
+     [[#Customization][Customization]] below).
 
 * Customization
+  :PROPERTIES:
+  :CUSTOM_ID: Customization
+  :END:
 
 ** ~dw-directory~
    The wordlist directory.  Upon load, this package automatically
