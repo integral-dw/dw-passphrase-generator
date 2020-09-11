@@ -5,7 +5,7 @@
 ;; Author: D. Williams <d.williams@posteo.net>
 ;; Maintainer: D. Williams <d.williams@posteo.net>
 ;; Keywords: convenience, games
-;; Version: 0.4.0
+;; Version: 0.5.0
 ;; Homepage: https://github.com/integral-dw/dw-passphase-generator
 ;; Package-Requires: ((emacs "25.1"))
 
@@ -28,6 +28,9 @@
 ;; Emacs.  For more information regarding diceware, see
 ;; http://world.std.com/~reinhold/diceware.html
 
+;; The package itself is not at all required to create diceware
+;; passphrases, but automates the table lookup bit of it.
+
 ;; Apart from the listed requirements, this package requires (ideally)
 ;; one or more casino-grade dice for true random number generation.
 
@@ -43,6 +46,7 @@
   :group 'convenience)
 
 ;;; Package-specific errors
+;; See the README for a complete documentation of errors.
 
 ;; Input Errors
 (define-error 'dw-bad-roll
@@ -63,8 +67,7 @@
   "Not enough die rolls for the given integer range"
   'dw-bad-roll)
 (define-error 'dw-overflow
-  "Too many consecutive die rolls, not implemented"
-  'error)
+  "Too many consecutive die rolls, not implemented")
 
 
 ;;; Package-specific warnings
@@ -80,10 +83,10 @@
 (defconst dw--dice-number 5
   "Number of die rolls needed for one word in a passphrase.")
 
-(defconst dw--conversion-limit (floor (log most-positive-fixnum 6))
+(defconst dw--conversion-limit 10
   "Length of the largest string that allows direct integer conversion.
-For the time being, this constant also governs the maximum number
-of dice usable to generate a random integer with ‘dw-generate-ranint’.")
+This constant also governs the maximum number of dice usable to
+generate a random integer with ‘dw-generate-ranint’.")
 
 (defconst dw--wordlist-length (expt 6 dw--dice-number)
   "Number of entries needed for a valid wordlist.")
@@ -95,9 +98,9 @@ of dice usable to generate a random integer with ‘dw-generate-ranint’.")
 (defcustom dw-separator-regexp "\\s-"
   "Regular expression to match a single separator character.
 Essentially, this regexp defines which characters (apart from the
-numerals 1 to 6) are valid to appear in dice roll strings.
+numerals 1 to 6) are valid to appear in die roll strings.
 Allowing separators serves as a convenience for the user to be
-able to keep long sequences of dice rolls readable on input."
+able to keep long sequences of die rolls readable on input."
   :type 'regexp
   :group 'dw)
 
@@ -122,42 +125,41 @@ generation pointless.  It may however be reasonable to set it to
           (const :format "%t (%v words)"
                  :tag "too high to justify using this package" 8)
           (const :format "%t (%v words)"
-                 :tag "I actually roll paper abstracts" 9))
+                 :tag "random essay generator" 9))
   :group 'dw)
 
 ;; Extended passphrase generation
-
 ;; FIXME: This one does not do anything yet.
-;;;###autoload
-(put 'dw-extra-char-string 'risky-local-variable t)
-(defcustom dw-extra-char-string "945678^~!#$%=&*()-}+[]\\{>:;\"'<3?/012"
-  "String of extra characters that can be added to a passphrase.
+;; ;;;###autoload
+;; (put 'dw-extra-char-string 'risky-local-variable t)
+;; (defcustom dw-extra-char-string "945678^~!#$%=&*()-}+[]\\{>:;\"'<3?/012"
+;;   "String of extra characters that can be added to a passphrase.
 
-Every character should be unique.  Additionally, the string
-should be no longer than 36 (6^2) characters."
-  :type '(string
-          :validate dw--validate-extra-char-string)
-  :risky t
-  :group 'dw)
+;; Every character should be unique.  Additionally, the string
+;; should be no longer than 36 (6^2) characters."
+;;   :type '(string
+;;           :validate dw--validate-extra-char-string)
+;;   :risky t
+;;   :group 'dw)
 
-(defun dw--validate-extra-char-string (text-field)
-  "Raise an error if TEXT-FIELD’s value is invalid for ‘dw-extra-char-string’.
-If the string exceeds the maximal allowed length (or contains
-redundant characters), remove excess chars and raise an error."
-  (let* ((extra-string (widget-value text-field))
-         (minimized-extra-string (concat (seq-uniq extra-string)))
-         has-error)
-    (unless (string= extra-string minimized-extra-string)
-      (setq extra-string minimized-extra-string)
-      (widget-put text-field :error "Characters must be unique in string")
-      (setq has-error t))
-    (unless (< (length extra-string) 36)
-      (setq extra-string (substring extra-string 0 36))
-      (widget-put text-field :error "String length must not exceed 36")
-      (setq has-error t))
-    (when has-error
-      (widget-value-set text-field extra-string)
-      text-field)))
+;; (defun dw--validate-extra-char-string (text-field)
+;;   "Raise an error if TEXT-FIELD’s value is invalid for ‘dw-extra-char-string’.
+;; If the string exceeds the maximal allowed length (or contains
+;; redundant characters), remove excess chars and raise an error."
+;;   (let* ((extra-string (widget-value text-field))
+;;          (minimized-extra-string (concat (seq-uniq extra-string)))
+;;          has-error)
+;;     (unless (string= extra-string minimized-extra-string)
+;;       (setq extra-string minimized-extra-string)
+;;       (widget-put text-field :error "Characters must be unique in string")
+;;       (setq has-error t))
+;;     (unless (< (length extra-string) 36)
+;;       (setq extra-string (substring extra-string 0 36))
+;;       (widget-put text-field :error "String length must not exceed 36")
+;;       (setq has-error t))
+;;     (when has-error
+;;       (widget-value-set text-field extra-string)
+;;       text-field)))
 
 ;; Interactive use
 ;;;###autoload
@@ -224,7 +226,18 @@ for one way to do it and stick to that."
 
 (defvar dw-current-wordlist nil
   "Current internalized wordlist for interactive use.
-This variable does not need to set manually.")
+This variable is used by ‘dw-passgen-region’ to access and store
+the most recently used wordlist.
+
+Do not set this variable directly; it is automatically
+initialized by ‘dw-passgen-region’.  If you want to initialize or
+manipulate it from within an interactive command, use
+‘dw-set-wordlist’.  If you want to set a default wordlist, see
+‘dw-named-wordlists’.
+
+If interactive commands require a wordlist, they should use the
+value of this variable.  If they use a different wordlist
+generated by ‘dw-build-alist’, they should set this variable")
 
 
 ;;; Internal predicates
@@ -254,13 +267,13 @@ from 1 to 6."
   (seq-difference string "123456"))
 
 (defun dw--internalize-rolls (string)
-  "Convert a STRING of dice rolls to a base-6 int."
+  "Convert a STRING of die rolls to a base-6 int."
   (string-to-number
    (replace-regexp-in-string "6" "0" string) 6))
 
 ;; Sadly, ‘number-to-string’ has no optional BASE argument.
-(defun dw--format-dice-roll (int)
-  "Convert internally used INT to corresponding dice roll string."
+(defun dw--format-die-rolls (int)
+  "Convert internally used INT to corresponding string of die rolls."
   (when (>= int 0)
     (let (digits)
       (dotimes (_ dw--dice-number)
@@ -270,7 +283,7 @@ from 1 to 6."
                                 (mapconcat #'number-to-string digits "")))))
 
 (defun dw--parse-string (user-string &optional noerror)
-  "Parse a USER-STRING of dice rolls.
+  "Parse a USER-STRING of die rolls.
 
 USER-STRING is stripped of junk chars specified by
 ‘dw-separator-regexp’ and then converted into a list of keys for an
@@ -292,8 +305,8 @@ nil for invalid strings instead of signaling an error."
       (setq error-data
             `(dw-incomplete-roll
               ,total-rolls
-              ,(+ total-rolls
-                  (- dw--dice-number (% total-rolls dw--dice-number))))))
+              ,(* dw--dice-number
+                  (ceil total-rolls dw--dice-number)))))
     (cond ((and error-data noerror) nil)
           (error-data
            (signal (car error-data) (cdr error-data)))
@@ -327,7 +340,7 @@ Each non-empty line of the file should be of the form
   ROLL WORD
 
 where ROLL is a sequence of five digits from 1 to 6, representing
-one of the 6^5 (7776) possible dice rolls.  WORD should be a
+one of the 6^5 (7776) possible die rolls.  WORD should be a
 sequence of (non-whitespace) characters to be used in the
 passphrase for that particular ROLL.
 
@@ -373,18 +386,18 @@ nil instead of raising an error for an unusable PASSLIST."
      ;; Taking the estimate from the website (that trying to
      ;; brute-force the wordlist should be more efficient than the
      ;; easier to come up with method of trying every passphrase up to
-     ;; the length L of the passphrase) would give one the following
+     ;; the actual length L of the passphrase) yields the following
      ;; estimate (for N words in a phrase and an alphabet of size A):
      ;;
      ;; 6^(5N) ≤ 1 + A^1 + A^2 + ... + A^(L-1) = (A^L - 1)/(A - 1)
      ;;
-     ;; This yields
+     ;; Which (approximately) simplifies to
      ;;
-     ;; L ≥ 5N/log6(A) + log6(A - 1)/Log6(A) ≈ 5N/log6(A) + 1.
+     ;; L ≥ 5N/log6(A) + 1.
      ;;
-     ;; Assuming A=27 (latin alphabet + SPC), you get the below.  This is
-     ;; slightly more strict for 8 words, but I can reason this one
-     ;; more confidently.  Also, this one does not account for spaces...
+     ;; Assuming A=27 (latin alphabet + SPC), you get the below.  This
+     ;; is slightly more strict for 8 words than the homepage's
+     ;; recommendation, but I can reason this one more confidently.
      ((< pass-length (round (1+ (* word-count 2.72))))
       (dw--warn-short-words)))
     (cond ((and error-data noerror)
@@ -417,8 +430,8 @@ nil instead of raising an error for an unusable ALIST."
                         (cl-mapcar (lambda (x y) (and (/= x y) x))
                               required-keys
                               key-list)))
-      (setq error-data `(dw-missing-entry
-                         ,(dw--format-dice-roll (car missing-keys))))))
+      (setq error-data `(dw-bad-wordlist
+                         ,(dw--format-die-rolls (car missing-keys))))))
     (cond ((and error-data noerror)
            nil)
           (error-data
@@ -436,7 +449,7 @@ Each non-empty line of the file should be of the form
   ROLL WORD
 
 where ROLL is a sequence of five digits from 1 to 6, representing
-one of the 6^5 (7776) possible dice rolls.  WORD should be a
+one of the 6^5 (7776) possible die rolls.  WORD should be a
 sequence of (non-whitespace) characters to be used in the
 passphrase for that particular ROLL.  It must be separated from
 ROLL by at least one space or tab character.  Both may be
@@ -464,7 +477,7 @@ either invalid or incomplete."
      noerror)))
 
 (defun dw-generate-passlist (string alist &optional noerror)
-  "Generate a list of words from a STRING of dice rolls.
+  "Generate a list of words from a STRING of die rolls.
 ALIST should be an internalized wordlist generated by
 ‘dw-build-alist’.  The result is a list of words forming the
 actual passphrase.
@@ -478,8 +491,8 @@ invalid or incomplete."
    noerror))
 
 (defun dw-generate-passphrase (string alist &optional separator strfun)
-  "Convert a STRING of dice rolls to a complete passphrase.
-STRING should be a sequence of dice rolls meant for passphrase
+  "Convert a STRING of die rolls to a complete passphrase.
+STRING should be a sequence of die rolls meant for passphrase
 generation.  ALIST should be an internalized wordlist as
 generated by ‘dw-build-alist’.
 
@@ -504,19 +517,20 @@ function of one variable."
   (ceiling (log n 6)))
 
 (defun dw-generate-ranint (string maxint &optional noerror)
-  "Convert STRING of dicerolls to a random int from 0 to MAXINT.
-STRING is expected to be a sequence of dicerolls.
+  "Convert STRING of die rolls to a random int from 0 to MAXINT.
+STRING is expected to be a sequence of die rolls.
 MAXINT is not included in the random number range.
-If STRING does not produce a valid value, return -1.
+If STRING does not produce a valid value, return nil.
 
 STRING must contain at least log6(MAXINT) die rolls, rounded up.
 It may contain more, however (up to a machine-dependent limit).
 
-Unless MAXINT divides a power of 6, there is no way to map all
-outcomes N dice can produce evenly and exhaustively at the same
-time.  Hence, on occasion random number generation will fail,
-producing -1 as an outcome.  Since the failure chance can reach
-up to 50%, it is recommended to choose an appropriate MAXINT.
+Unless MAXINT is a number of the form 2^a * 3^b , there is no way
+to map all outcomes N dice can produce evenly and exhaustively at
+the same time.  Hence, on occasion random number generation will
+fail, producing nil as an outcome.  Since the failure chance can
+reach up to 50%, it is recommended to choose an appropriate
+MAXINT.
 
 If the optional third argument NOERROR is non-nil, then return
 nil instead of raising an error in case of STRING."
@@ -524,7 +538,7 @@ nil instead of raising an error in case of STRING."
   (let* ((string (dw--strip-separators string))
          (dice-num (length string))
          (min-dice (dw-required-dice string))
-         (random-int -1)
+         random-int
          error-data)
     (cond ((< dice-num min-dice)
            (setq error-data
@@ -538,7 +552,7 @@ nil instead of raising an error in case of STRING."
            (setq random-int (dw--internalize-rolls string))
            (unless (< random-int (% (expt 6 dice-num) maxint))
              (setq random-int (% random-int dice-num))))
-          ;; With bignums in Emacs 27.1, I could in principle rely on
+          ;; With bignumns in Emacs 27.1, I could in principle rely on
           ;; arbitrary integer artithmetic.  However, using bignums
           ;; for this is immensely wasteful, especially since this can
           ;; easily be done with fixnums using simple modulo
@@ -555,10 +569,8 @@ nil instead of raising an error in case of STRING."
 
     random-int))
 
-;;; Interactive commands
-;; TODO: support for:
-;; random printable and numeral.
-
+
+;;; Private functions for misc. interactive commands
 (defvar dw--wordlist-history nil
   "Minibuffer history for previously used wordlists.")
 
@@ -591,8 +603,12 @@ processing."
              "‘dw-named-wordlists’.")
     (list 'ad-hoc file-name)))
 
-(defun dw-set-alist (&optional use-default)
-  "Set a named wordlist for interactive passphrase generation.
+
+;;; Interactive commands
+;; TODO: support for: random printable and numeral insertions
+(defun dw-set-wordlist (&optional use-default)
+  "Set a (named) wordlist for interactive passphrase generation.
+This function always returns nil.
 
 Named wordlists are specified by ‘dw-named-wordlists’.  If
 ‘dw-named-wordlists’ is nil, prompt for a file to use, with
@@ -600,8 +616,13 @@ Named wordlists are specified by ‘dw-named-wordlists’.  If
 
 If the prefix argument USE-DEFAULT is non-nil, use the default
 wordlist, if available.  Otherwise, prompt the user for which
-wordlist to use."
-  (interactive "P")
+wordlist to use.
+
+This function specifically manipulates the active wordlist stored
+in ‘dw-current-wordlist’ accessible to ‘dw-passgen-region’.  If
+you want to convert a wordlist file into the internal format, use
+‘dw-build-alist’ instead."
+  (interactive "*P")
   (let (wordlist-entry file coding)
     (setq wordlist-entry
           (cond ((null dw-named-wordlists)
@@ -616,22 +637,25 @@ wordlist to use."
                   dw-named-wordlists)))
           file (cadr wordlist-entry)
           coding (cddr wordlist-entry)
-          dw-current-wordlist (dw-build-alist file dw-directory coding))))
+          dw-current-wordlist (dw-build-alist file dw-directory coding)))
+  nil)
 
 ;;;###autoload
 (defun dw-passgen-region (start end &optional choose-wordlist)
-  "Replace diceroll sequence in region with corresponding passphrase.
+  "Replace sequence of die rolls in region with corresponding passphrase.
 
-Without prefix argument, use the default wordlist, if available.
+Without prefix argument, use the last wordlist used in the same
+session.  If no wordlist has been set, use the default wordlist,
+if available.  If no default wordlist is available, either prompt
+for a named wordlist specified by ‘dw-named-wordlists’ or fall
+back to prompting for a file.  With prefix argument, ignore the
+presence of a default wordlist.
 
-Noninteractively, optional second argument CHOOSE-WORDLIST
-specifies whether the user is prompted for a wordlist to use.  If
-nil, use the default wordlist specified by ‘dw-named-wordlists’,
-if available.
+Noninteractively, the optional second argument CHOOSE-WORDLIST
+serves the same purpose as the prefix arg.
 
 If called from Lisp, the arguments START and END must specify the
 region to use for passphrase generation."
-  ;;TODO: document prefix arg better
   (interactive "r\nP")
 
   (when (= start end)
@@ -639,9 +663,10 @@ region to use for passphrase generation."
 
   (let* ((strfun (when dw-capitalize-words #'capitalize))
          (dice-string (buffer-substring-no-properties start end))
+         (use-default (not choose-wordlist))
          passphrase)
-
-    (dw-set-alist (not choose-wordlist))
+    (unless (and dw-current-wordlist use-default)
+      (dw-set-wordlist use-default))
     (setq passphrase
           (dw-generate-passphrase dice-string
                                   dw-current-wordlist
