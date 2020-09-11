@@ -57,16 +57,7 @@
 ;; File Errors
 (define-error 'dw-bad-wordlist
   "Broken wordlist"
-  'user-error)
-(define-error 'dw-incomplete-wordlist
-  "Broken wordlist, missing entries"
-  'dw-bad-wordlist)
-(define-error 'dw-overfull-wordlist
-  "Broken wordlist, too many entries"
-  'dw-bad-wordlist)
-(define-error 'dw-missing-entry
-  "Broken wordlist, missing entry for dice roll"
-  'dw-bad-wordlist)
+  'file-error)
 ;; Misc RNG Errors
 (define-error 'dw-incomplete-int
   "Not enough die rolls for the given integer range"
@@ -415,11 +406,11 @@ nil instead of raising an error for an unusable ALIST."
         error-data)
     (cond
      ((< wordlist-length dw--wordlist-length)
-      (setq error-data `(dw-incomplete-wordlist
-                         ,wordlist-length ,dw--wordlist-length)))
+      (setq error-data `(dw-bad-wordlist
+                         (< ,wordlist-length ,dw--wordlist-length))))
      ((> wordlist-length dw--wordlist-length)
-      (setq error-data `(dw-overfull-wordlist
-                         ,wordlist-length ,dw--wordlist-length)))
+      (setq error-data `(dw-bad-wordlist
+                         (> ,wordlist-length ,dw--wordlist-length))))
      ((not (equal key-list required-keys))
       (setq missing-keys
             (seq-filter #'identity
