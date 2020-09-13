@@ -260,15 +260,20 @@
    recovered from gracefully.
 
 *** =dw-bad-wordlist=
-    The wordlist is either too short, too long, or missing a key.
-    What data the error holds depends on what went wrong: Is the
-    wordlist too long, it will hold a list of the form
-    ~(> IS-LENGTH GOAL-LENGTH)~, where =IS-LENGTH= is the actual length of
-    the wordlist, while =GOAL-LENGTH= is the length the list should
-    have.  Conversely, if the wordlist is too short, it will hold a
-    list ~(< IS-LENGTH GOAL-LENGTH)~.  If the wordlists has no entry for
-    the combination "16452", it will hold this combination as a
-    string.
+    The wordlist cannot be used for passphrase generation.  Several
+    things may cause this error: The wordlist being too short, too
+    long, not a regular file, or missing a key.  What data the error
+    holds depends on what went wrong:
+
+    * Is the wordlist too long, it will hold a list of the form ~(>
+      IS-LENGTH GOAL-LENGTH)~, where =IS-LENGTH= is the actual length of
+      the wordlist, while =GOAL-LENGTH= is the length the list should
+      have.  Conversely, if the wordlist is too short, it will hold a
+      list ~(< IS-LENGTH GOAL-LENGTH)~.
+    * If the wordlists is missing an entry, for example the
+      combination "16452", it will hold this combination as a string.
+    * If the file is not a regular file (e.g. a directory) it holds
+      the predicate ~file-regular-p~ and name of the file.
 
 *** =dw-bad-roll=
     The string of die rolls cannot be parsed for some reason.  More
