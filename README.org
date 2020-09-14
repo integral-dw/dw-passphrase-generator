@@ -140,7 +140,7 @@
   Once the package is set up (see [[#Installation][Installation]]), basic usage boils
   down two three simple steps:
 
-  1) Open a temporary buffer. For example, =C-x b dice RET= opens a
+  1) Open a temporary buffer.  For example, =C-x b dice RET= opens a
      buffer called =dice=.  This way you can easily dispose of the
      buffer once you got your passphrase.
   2) Roll your dice, reading them in some consistent way (e.g. left to
