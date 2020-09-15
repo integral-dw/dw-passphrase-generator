@@ -1,11 +1,11 @@
 ;;; dw.el --- Diceware passphrase generation commands  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2020  D. Williams
+;; Copyright (C) 2017-2020  D. Williams
 
 ;; Author: D. Williams <d.williams@posteo.net>
 ;; Maintainer: D. Williams <d.williams@posteo.net>
 ;; Keywords: convenience, games
-;; Version: 0.5.0
+;; Version: 0.6.0
 ;; Homepage: https://github.com/integral-dw/dw-passphase-generator
 ;; Package-Requires: ((emacs "25.1"))
 

@@ -9,6 +9,7 @@
   * [[#Installation][Installation]]
   * [[#Customization][Customization]]
   * [[#planned-features][Planned Features]]
+  * [[#NEWS][NEWS]]
 
 * About
   :PROPERTIES:
@@ -429,6 +430,19 @@
   For now, there are two things on the schedule:
   + add support for salt
   + add support for random char insertion
+
+* NEWS
+  :PROPERTIES:
+  :CUSTOM_ID: NEWS
+  :END:
+
+** =2020-09-15=
+   I have finally decided to make this package public.  This is
+   probably my oldest project, and has seen three complete rewrites by
+   now.  Now that I am somewhat more experienced with writing
+   packages, I decided to refurbish the old thing once more, and
+   potentially getting it on MELPA.  For now, I will focus on
+   finishing up minor features and adding a bit of polish.
 
 #  LocalWords:  wordlist wordlists infosec passlist alist dw drury el
 #  LocalWords:  passgen linguini log2 RET dir noerror strfun ranint
