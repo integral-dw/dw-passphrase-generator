@@ -2,5 +2,3 @@
 *.elc
 # Backup files
 *~
-#old reference files
-old-*.el
