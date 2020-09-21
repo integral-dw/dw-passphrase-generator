@@ -103,7 +103,7 @@
 ;; The specifics and conventions are only relevant if you are
 ;; interested in writing code depending on this package.  In that
 ;; case, see the README for a complete documentation of errors and
-;; thei conventions.
+;; their conventions.
 
 ;; Input Errors
 (define-error 'dw-bad-roll
@@ -606,8 +606,8 @@ nil instead of raising an error in case of STRING."
            (setq random-int (dw--internalize-rolls string))
            (unless (< random-int (% (expt 6 dice-num) maxint))
              (setq random-int (% random-int dice-num))))
-          ;; With bignumns in Emacs 27.1, I could in principle rely on
-          ;; arbitrary integer artithmetic.  However, using bignums
+          ;; With bignums in Emacs 27.1, I could in principle rely on
+          ;; arbitrary integer arithmetic.  However, using bignums
           ;; for this is immensely wasteful, especially since this can
           ;; easily be done with fixnums using simple modulo
           ;; arithmetic.  However, it's a feature not worth needlessly

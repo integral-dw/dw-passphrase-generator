@@ -1,5 +1,6 @@
 #+TITLE: ~dw~: A Diceware Passphrase Generator for Emacs
 #+STARTUP: showall
+[[https://melpa.org/#/dw][file:https://melpa.org/packages/dw-badge.svg]] [[https://stable.melpa.org/#/dw][file:https://stable.melpa.org/packages/dw-badge.svg]]
 
 [[https://xkcd.com/936/][file:https://imgs.xkcd.com/comics/password_strength.png]]
 
@@ -16,10 +17,9 @@
   :CUSTOM_ID: About
   :END:
 
-  *WARNING:* This package is under construction.  Once again, I am busy
-  working out the kinks.  *Any function and variable defined here is
-  subject to change* until version 1.0.0, from which point on I will
-  try my best not to inconvenience people.
+  +WARNING: This package is under construction.+ The package is on the
+  verge of reaching version *1.0.0*, so what you are seeing right now is
+  pretty much the final product.
 
   This package provides a basic implementation of the [[http://world.std.com/~reinhold/diceware.html][diceware]] method
   of passphrase generation, by Arnold G. Reinhold.  If you are new to
@@ -435,6 +435,12 @@
   :PROPERTIES:
   :CUSTOM_ID: NEWS
   :END:
+
+
+** =2020-09-21=
+   The package is now available on MELPA!  A few minor additions will
+   be made soon, at which point this package gets its official *1.0.0*
+   upgrade!
 
 ** =2020-09-15=
    I have finally decided to make this package public.  This is
