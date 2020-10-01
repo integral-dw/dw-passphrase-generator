@@ -385,6 +385,12 @@
    and stick to it, or else it becomes additional needless information
    to memorize, which the diceware method tries to keep to a minimum.
 
+** ~dw-salt~
+
+*** ~dw-use-salt~
+
+** ~dw-random-characters~
+
 ** ~dw-capitalize-words~
    One of the more common restrictions put on passphrases is the
    requirement of at least one capital letter.  However, the entropy

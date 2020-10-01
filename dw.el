@@ -94,6 +94,8 @@
 
 (require 'seq)
 (require 'wid-edit)
+(eval-when-compile
+  (require 'cl-lib))
 
 (defgroup dw nil
   "Generate diceware passphrases."
@@ -150,6 +152,47 @@ generate a random integer with ‘dw-generate-ranint’.")
 
 ;;; User-facing variables
 ;; Core API
+
+;;;###autoload
+(put 'dw-salt 'risky-local-variable t)
+(defcustom dw-salt nil
+  "Unique, personal string to append to passphrases.
+Salt is a string of non-secret data to append to your
+passphrases.  It serves to prevent dictionary attacks, and makes
+it harder for potential attackers to brute force multiple keys at
+once.
+
+While it is not a good idea to use the same passphrase for
+everything, it is best to use the same salt or everything, as it
+frees precious mental real estate.  You can use a phone number, a
+random string of characters, or anything else for this purpose,
+as long as it is sufficiently unique.
+
+It is also a great way to fulfill those pesky demands of some
+services to have a special character, a number and an uppercase
+character in it without adding mental overhead.
+
+If non-nil, interactive commands should ask whether they should
+append the salt, depending on the value of ‘dw-use-salt’."
+  :type '(choice :format "Personal salt: %[Value Menu%] %v"
+                (const :tag "none" nil)
+                (string :tag "custom string"
+                        :format "%v"))
+  :risky t
+  :group 'dw)
+
+(defcustom dw-use-salt t
+  "Non-nil means to (optionally) append ‘dw-salt’ to generated passphrases.
+If set to the symbol ‘prompt’, interactive commands will prompt
+the user whether they should append salt.  Any other non-nil
+value is equivalent to t, meaning salt is appended automatically.
+
+This variable has no effect if ‘dw-salt’ is nil."
+  :type '(choice :format "Append salt interactively: %[Value Menu%] %v"
+                 (const :tag "always" t)
+                 (const :tag "ask every time" 'prompt)
+                 (const :tag "never" nil))
+  :group 'dw)
 
 (defcustom dw-separator-regexp "\\s-"
   "Regular expression to match a single separator character.
@@ -690,6 +733,23 @@ processing."
               (list 'file-regular-p file-name)))
     (list 'ad-hoc file-name)))
 
+(defun dw--append-salt-maybe (passphrase)
+  "Conditionally append ‘dw-salt’ to PASSPHRASE.
+
+Whether this happens automatically or requires user input is
+goverened by ‘dw-use-salt’, which see."
+  (if dw-salt
+      (cl-case dw-use-salt
+        (always
+         (concat passphrase dw-passphrase-separator dw-salt))
+        (nil
+         passphrase)
+        (t
+         (if (yes-or-no-p "Append salt? ")
+             (concat passphrase dw-passphrase-separator dw-salt)
+           passphrase)))
+    passphrase))
+
 
 ;;; Interactive commands
 ;; TODO: support for: random printable and numeral insertions
@@ -759,6 +819,8 @@ region to use for passphrase generation."
                                   dw-current-wordlist
                                   dw-passphrase-separator
                                   strfun))
+    (setq passphrase
+          (dw--append-salt-maybe passphrase))
     (delete-region start end)
     (insert passphrase)
     passphrase))
