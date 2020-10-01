@@ -42,7 +42,7 @@
 ;; passphrase is generated.  Put a wordlist for passphrase generation
 ;; into the directory specified by ‘dw-directory’.  It will be
 ;; automatically generated the first time this package is loaded.  If
-;; you don't already have a wordlist, you can find two common, english
+;; you don't already have a wordlist, you can find two common, English
 ;; wordlists below:
 
 ;; https://www.eff.org/files/2016/07/18/eff_large_wordlist.txt
@@ -185,37 +185,70 @@ generation pointless.  It may however be reasonable to set it to
   :group 'dw)
 
 ;; Extended passphrase generation
-;; FIXME: This one does not do anything yet.
-;; ;;;###autoload
-;; (put 'dw-extra-char-string 'risky-local-variable t)
-;; (defcustom dw-extra-char-string "945678^~!#$%=&*()-}+[]\\{>:;\"'<3?/012"
-;;   "String of extra characters that can be added to a passphrase.
+;;;###autoload
+(put 'dw-random-characters 'risky-local-variable t)
+(defcustom dw-random-characters
+  '((special-characters "945678^~!#$%=&*()-}+[]\\{>:;\"'<3?/012")
+    (numerals "0123456789" . t)
+    (alphanumeric-uppercase "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+    (alphanumeric-lowercase "abcdefghijklmnopqrstuvwxyz0123456789"))
+  "Alist of strings to randomly choose characters from.
 
-;; Every character should be unique.  Additionally, the string
-;; should be no longer than 36 (6^2) characters."
-;;   :type '(string
-;;           :validate dw--validate-extra-char-string)
-;;   :risky t
-;;   :group 'dw)
+Each element should be a dotted list should be of the form
+\(NAME STRING . LAX)
 
-;; (defun dw--validate-extra-char-string (text-field)
-;;   "Raise an error if TEXT-FIELD’s value is invalid for ‘dw-extra-char-string’.
-;; If the string exceeds the maximal allowed length (or contains
-;; redundant characters), remove excess chars and raise an error."
-;;   (let* ((extra-string (widget-value text-field))
-;;          (minimized-extra-string (concat (seq-uniq extra-string)))
-;;          has-error)
-;;     (unless (string= extra-string minimized-extra-string)
-;;       (setq extra-string minimized-extra-string)
-;;       (widget-put text-field :error "Characters must be unique in string")
-;;       (setq has-error t))
-;;     (unless (< (length extra-string) 36)
-;;       (setq extra-string (substring extra-string 0 36))
-;;       (widget-put text-field :error "String length must not exceed 36")
-;;       (setq has-error t))
-;;     (when has-error
-;;       (widget-value-set text-field extra-string)
-;;       text-field)))
+where NAME (a symbol) is a descriptive name for the STRING’s
+contents.  LAX, if non-nil, does not enforce the length of STRING
+to be a power of 6.  As a consequence, some rolls will fail to
+produce a result."
+  :type '(alist
+          :key-type (symbol :format "Name: %v" :value default)
+          :value-type
+          (cons :validate dw--validate-ran-chars
+                (string :format "Available characters: %v")
+                (choice :format "Match die rolls: %[Toggle%] %v"
+                        (const :tag "lax" t)
+                        (const :tag "strict" nil))))
+  :risky t
+  :group 'dw)
+
+(defun dw--validate-ran-chars (cons-widget)
+  "Signal an error if string in CONS-WIDGET is unsafe to use."
+  (or (dw--validate-ran-string-length cons-widget)
+      (dw--validate-ran-string-uniq cons-widget)))
+
+(defun dw--validate-ran-string-length (cons-widget)
+  "Check that the car of CONS-WIDGET is a 6^N long string.
+If the cdr (LAX) is non-nil, return nil instead.
+
+Note for the technically inclined: In principle it may as well be
+okay for non-lax (\"strict\") strings to *divide* a power of 6
+instead of actually *being* a power of 6.  However, the number of
+die rolls needed per character only increases on average for all
+reasonable number ranges."
+  (let* ((current-cons (widget-value cons-widget))
+         (str-length (length (car current-cons)))
+         (lax (cdr current-cons)))
+    (cond
+     (lax nil)
+     ((/= str-length (expt 6 (dw-required-dice str-length)))
+      (widget-put cons-widget
+                  :error "Non-lax strings must be a power of 6 long")
+      cons-widget))))
+
+(defun dw--validate-ran-string-uniq (cons-widget)
+  "Check that the string in the car of CONS-WIDGET has no repeating chars."
+  (let* ((current-cons (widget-value cons-widget))
+         (ran-string (car current-cons))
+         (minimized-string (concat (seq-uniq ran-string))))
+    (unless (string= ran-string minimized-string)
+      (setf (car current-cons) minimized-string)
+      (widget-put cons-widget
+                  :error "Characters must be unique in string")
+      (widget-value-set cons-widget current-cons)
+      (widget-setup)
+      cons-widget)))
+
 
 ;; Interactive use
 ;;;###autoload
@@ -733,4 +766,4 @@ region to use for passphrase generation."
 (provide 'dw)
 ;;; dw.el ends here
 
-;; LocalWords:  wordlists wordlist utf
+;; LocalWords:  wordlists wordlist utf alist https http
