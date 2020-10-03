@@ -173,7 +173,10 @@ services to have a special character, a number and an uppercase
 character in it without adding mental overhead.
 
 If non-nil, interactive commands should ask whether they should
-append the salt, depending on the value of ‘dw-use-salt’."
+append the salt, depending on the value of ‘dw-use-salt’.
+
+Appended salt is separated from the remaining passphrase the same
+way individual words are, using ‘dw-passphrase-separator’."
   :type '(choice :format "Personal salt: %[Value Menu%] %v"
                 (const :tag "none" nil)
                 (string :tag "custom string"
@@ -182,10 +185,13 @@ append the salt, depending on the value of ‘dw-use-salt’."
   :group 'dw)
 
 (defcustom dw-use-salt t
-  "Non-nil means to (optionally) append ‘dw-salt’ to generated passphrases.
+  "Non-nil means to (conditionally) append ‘dw-salt’ to generated passphrases.
 If set to the symbol ‘prompt’, interactive commands will prompt
 the user whether they should append salt.  Any other non-nil
 value is equivalent to t, meaning salt is appended automatically.
+
+Appended salt is separated from the remaining passphrase the same
+way individual words are, using ‘dw-passphrase-separator’.
 
 This variable has no effect if ‘dw-salt’ is nil."
   :type '(choice :format "Append salt interactively: %[Value Menu%] %v"
@@ -667,7 +673,7 @@ nil instead of raising an error in case of STRING."
 
   (let* ((string (dw--strip-separators string))
          (dice-num (length string))
-         (min-dice (dw-required-dice string))
+         (min-dice (dw-required-dice maxint))
          random-int
          error-data)
     (cond ((< dice-num min-dice)
@@ -680,8 +686,9 @@ nil instead of raising an error in case of STRING."
           ;; Does the entire dice string fit into a fixnum int?
           ((< dice-num dw--conversion-limit)
            (setq random-int (dw--internalize-rolls string))
-           (unless (< random-int (% (expt 6 dice-num) maxint))
-             (setq random-int (% random-int dice-num))))
+           (if (< random-int (% (expt 6 dice-num) maxint))
+               (setq random-int nil)
+             (setq random-int (% random-int maxint))))
           ;; With bignums in Emacs 27.1, I could in principle rely on
           ;; arbitrary integer arithmetic.  However, using bignums
           ;; for this is immensely wasteful, especially since this can
@@ -693,10 +700,8 @@ nil instead of raising an error in case of STRING."
           (t
            (setq error-data
                  `(dw-overflow ,dice-num ,dw--conversion-limit))))
-
     (when (and error-data (not noerror))
       (signal (car error-data) (cdr error-data)))
-
     random-int))
 
 
@@ -750,9 +755,29 @@ goverened by ‘dw-use-salt’, which see."
            passphrase)))
     passphrase))
 
+(defvar dw--random-character-history nil
+  "Minibuffer history for previously used generation strings.")
+
+(defun dw--prompt-random-chatacters ()
+  "Read an entry from ‘dw-random-characters’, with completion.
+Return a cons cell of the form (STRING . LAX), see ‘dw-random-characters’."
+  (let* ((names (mapcar #'car dw-random-characters))
+         (default-string (if (memq 'default names)
+                             "default"
+                           (or (car dw--random-character-history)
+                               (symbol-name (car names)))))
+         symbol-string)
+    (setq symbol-string
+          (completing-read
+           (format "Random string of (default %s): "
+                   default-string)
+           names nil t nil 'dw--random-character-history default-string))
+    (add-to-history 'dw--random-character-history symbol-string)
+    (assq (intern symbol-string)
+          dw-random-characters)))
+
 
 ;;; Interactive commands
-;; TODO: support for: random printable and numeral insertions
 (defun dw-set-wordlist (&optional use-default)
   "Set a (named) wordlist for interactive passphrase generation.
 This function always returns nil.
@@ -804,10 +829,8 @@ serves the same purpose as the prefix argument.
 If called from Lisp, the arguments START and END must specify the
 region to use for passphrase generation."
   (interactive "*r\nP")
-
   (when (= start end)
     (user-error "Cannot generate passphrase: empty region"))
-
   (let* ((strfun (when dw-capitalize-words #'capitalize))
          (dice-string (buffer-substring-no-properties start end))
          (use-default (not choose-wordlist))
