@@ -135,6 +135,17 @@
   (delay-warning '(dw too-many-short-words)
                  (concat "The generated passphrase has many short words. "
                          "Consider discarding it.")))
+
+(defun dw--warn-bad-random-characters ()
+  "Report a warning for incomplete character lookup strings.
+This warning is triggered if an entry in ‘dw-random-characters’
+unexpectedly cannot assign a die roll to a character, which is
+only allowed for entries with a non-nil LAX value."
+(delay-warning '(dw bad-dw-random-characters)
+               (concat "There were unused rolls. "
+                       "‘dw-random-characters’ is probably misconfigured.")))
+
+
 
 ;;; Constants
 
@@ -243,7 +254,7 @@ generation pointless.  It may however be reasonable to set it to
     (alphanumeric-lowercase "abcdefghijklmnopqrstuvwxyz0123456789"))
   "Alist of strings to randomly choose characters from.
 
-Each element should be a dotted list should be of the form
+Each element should be a dotted list of the form
 \(NAME STRING . LAX)
 
 where NAME (a symbol) is a descriptive name for the STRING’s
@@ -738,6 +749,39 @@ processing."
               (list 'file-regular-p file-name)))
     (list 'ad-hoc file-name)))
 
+(defun dw--generate-charlist (dice-string possible-chars)
+  "Convert DICE-STRING into a random sequence of POSSIBLE-CHARS.
+
+Return a cons of the form
+\(STRING . RNG-FAILURES)
+
+where STRING is the converted random char sequence, and
+RNG-FAILURES is the number of failed character generations."
+  (let* ((char-num (length possible-chars))
+         (rng-failures 0)
+         rand-pos
+         rand-chars)
+    ;; Convert die rolls to characters.
+    (dolist (roll (seq-partition dice-string (dw-required-dice char-num)))
+      (setq rand-pos
+            (condition-case error
+                (dw-generate-ranint roll char-num)
+              ;; Inform the user if the number of rolls does not match the
+              ;; expected format.
+              (dw-incomplete-int
+               (message "%s (%i/%i)."
+                        "Region is missing die rolls for one additional character"
+                        (elt error 1) (elt error 2))
+               ;; This edge case is not the RNG's fault
+               t)))
+      (cond
+       ((integerp rand-pos)
+        (push (elt possible-chars rand-pos) rand-chars))
+       ((not rand-pos)
+        (setq rng-failures (1+ rng-failures)))))
+    (cons (concat (nreverse rand-chars))
+          rng-failures)))
+
 (defun dw--append-salt-maybe (passphrase)
   "Conditionally append ‘dw-salt’ to PASSPHRASE.
 
@@ -773,8 +817,9 @@ Return a cons cell of the form (STRING . LAX), see ‘dw-random-characters’."
                    default-string)
            names nil t nil 'dw--random-character-history default-string))
     (add-to-history 'dw--random-character-history symbol-string)
-    (assq (intern symbol-string)
-          dw-random-characters)))
+    (cdr
+     (assq (intern symbol-string)
+           dw-random-characters))))
 
 
 ;;; Interactive commands
@@ -847,6 +892,31 @@ region to use for passphrase generation."
     (delete-region start end)
     (insert passphrase)
     passphrase))
+
+(defun dw-ranstring-region (start end)
+  "Replace sequence of die rolls in region with a random character sequence.
+
+If called from Lisp, the arguments START and END must specify the
+region to use for passphrase generation."
+  (interactive "*r")
+  (when (= start end)
+    (user-error "Cannot generate random string: empty region"))
+  (when (null dw-random-characters)
+    (user-error "Cannot generate random string: ‘dw-random-characters’ is nil"))
+  (pcase-let* ((dice-string (dw--strip-separators
+                             (buffer-substring-no-properties start end)))
+               (`(,possible-chars . ,lax) (dw--prompt-random-chatacters))
+               (`(,rand-string . ,rng-failures)
+                (dw--generate-charlist dice-string possible-chars)))
+    ;; Notify the user of RNG fails
+    (cond ((and (/= rng-failures 0) lax)
+           (message "%i roll(s) failed to generate a random character."
+                    rng-failures))
+          ((/= rng-failures 0)
+           (dw--warn-bad-random-characters)))
+    (delete-region start end)
+    (insert rand-string)
+    rand-string))
 
 (provide 'dw)
 ;;; dw.el ends here
