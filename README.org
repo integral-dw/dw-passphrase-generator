@@ -17,10 +17,6 @@
   :CUSTOM_ID: About
   :END:
 
-  +WARNING: This package is under construction.+ The package is on the
-  verge of reaching version *1.0.0*, so what you are seeing right now is
-  pretty much the final product.
-
   This package provides a basic implementation of the [[http://world.std.com/~reinhold/diceware.html][diceware]] method
   of passphrase generation, by Arnold G. Reinhold.  If you are new to
   diceware, *please read the subsections below, or check out the link
@@ -168,8 +164,7 @@
      overview.
 
 ** Interactive commands
-   There are two simple interactive commands at the moment, with one
-   or two more planned in future versions.
+   There are three simple interactive commands at the moment.
 
 *** ~dw-passgen-region (start end &optional choose-wordlist)~
     The all-in-one interactive passphrase generation command, and most
@@ -410,7 +405,7 @@
   frees precious mental real estate.  You can use a phone number, a
   random string of characters, or anything else for this purpose, as
   long as it is sufficiently unique.  In that sense, you can think of
-  a salt as you "signing" your passphrase.
+  a salt as you adding a personal signature to your passphrase.
 
   On a more practical note, it is also a great way to fulfill those
   pesky demands of some services to have a special character, a number
@@ -428,6 +423,23 @@
     * ~nil~: Never add salt.
 
 ** ~dw-random-characters~
+   This variable is used by ~dw-ranstring-region~ to generate random
+   strings from die rolls.  It is an association list where each entry
+   has the form ~(NAME STRING . LAX)~.  =STRING= serves as a set of
+   characters to choose from when processing die rolls.  =NAME= is the
+   name the string will be referred to on input.  Finally, =LAX= is a
+   small security flag: If nil, the string must be a power of 6 long
+   (6, 36, \dots).  That is because it is the only useful way to ensure
+   that every possible sequence of die rolls maps to a result with
+   equal probability.  Otherwise, some die rolls must be discarded to
+   avoid bias.  If =LAX= is non-nil, some die rolls will simply be
+   discarded, meaning it will take you (on average) a fraction of a
+   die per rolled character more.
+
+   *Remark:* Keep in mind that the number of characters in string
+   decides the number of dice you have to roll /per character/.  1-6
+   characters need one die roll, 7-36 need two, etc.
+
 
 ** ~dw-capitalize-words~
    One of the more common restrictions put on passphrases is the
@@ -471,7 +483,7 @@
   long as I use Emacs.  If this package ever tried to teach me
   anything, it is "less is more": Well, it should have tried harder.
 
-  For now, there are two things on the schedule:
+  +For now, there are two things on the schedule:+
   + +add support for salt+ *done*.
   + +add support for random char insertion+
     - This feature has been scrapped for now.  There is very little
@@ -482,7 +494,6 @@
   :PROPERTIES:
   :CUSTOM_ID: NEWS
   :END:
-
 
 ** =2020-09-21=
    The package is now available on MELPA!  A few minor additions will
