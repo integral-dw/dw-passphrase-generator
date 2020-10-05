@@ -5,8 +5,8 @@
 ;; Author: D. Williams <d.williams@posteo.net>
 ;; Maintainer: D. Williams <d.williams@posteo.net>
 ;; Keywords: convenience, games
-;; Version: 0.6.0
-;; Homepage: https://github.com/integral-dw/dw-passphase-generator
+;; Version: 1.0.0
+;; Homepage: https://github.com/integral-dw/dw-passphrase-generator
 ;; Package-Requires: ((emacs "25.1"))
 
 ;; This program is free software; you can redistribute it and/or modify
