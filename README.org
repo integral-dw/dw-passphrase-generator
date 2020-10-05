@@ -495,6 +495,12 @@
   :CUSTOM_ID: NEWS
   :END:
 
+** =2020-10-05=
+   Version *1.0.0* is finally out!  The new version fixes a few glaring
+   errors in random integer generation (passphrases remain unaffected,
+   no worries), adds salt as an option upon passphrase generation and
+   allows you to generate random character sequences with die rolls.
+
 ** =2020-09-21=
    The package is now available on MELPA!  A few minor additions will
    be made soon, at which point this package gets its official *1.0.0*
