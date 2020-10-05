@@ -189,6 +189,13 @@
     when you go out of your way invoking an extra command to do just
     that.
 
+*** ~dw-ranstring-region~
+    Generate a random character string from die rolls.  While this
+    could in principle be used to generate regular strong passwords,
+    it primarily serves as a minor convenience to, for example,
+    generate a unique [[#Salt][salt]].  You can customize sets of characters from
+    which random strings are generated via ~~
+
 ** Public functions
    =dw= uses very primitive data structures to hold wordlists and
    internalized passphrases.  Wordlists are internalized as
@@ -386,6 +393,10 @@
    to memorize, which the diceware method tries to keep to a minimum.
 
 ** ~dw-salt~
+  :PROPERTIES:
+  :CUSTOM_ID: Salt
+  :END:
+
 
 *** ~dw-use-salt~
 
@@ -434,8 +445,11 @@
   anything, it is "less is more": Well, it should have tried harder.
 
   For now, there are two things on the schedule:
-  + add support for salt
-  + add support for random char insertion
+  + +add support for salt+ *done*.
+  + +add support for random char insertion+
+    - This feature has been scrapped for now.  There is very little
+      entropy gain on a per-character basis, to the point other
+      methods of increasing entropy are likely easier.
 
 * NEWS
   :PROPERTIES:
