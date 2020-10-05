@@ -270,7 +270,7 @@ character increases logarithmically with the number of
 characters: Less than 7 characters require 1 die per roll, less
 than 36 two, etc.  Some character numbers may produce a high
 failure rate (in particular values slightly above 6^n/2), which
-can double the (average) number of dice per successfuly generated
+can double the (average) number of dice per successfully generated
 character."
   :type '(alist
           :key-type (symbol :format "Name: %v" :value default)
@@ -797,7 +797,7 @@ RNG-FAILURES is the number of failed character generations."
   "Conditionally append ‘dw-salt’ to PASSPHRASE.
 
 Whether this happens automatically or requires user input is
-goverened by ‘dw-use-salt’, which see."
+governed by ‘dw-use-salt’, which see."
   (if dw-salt
       (cl-case dw-use-salt
         (always
