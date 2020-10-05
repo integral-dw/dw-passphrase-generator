@@ -258,9 +258,20 @@ Each element should be a dotted list of the form
 \(NAME STRING . LAX)
 
 where NAME (a symbol) is a descriptive name for the STRING’s
-contents.  LAX, if non-nil, does not enforce the length of STRING
-to be a power of 6.  As a consequence, some rolls will fail to
-produce a result."
+contents.  ‘dw-ranstring-region’ will prompt for these
+names (with completion).
+
+LAX, if non-nil, does not enforce the length of STRING to be a
+power of 6.  As a consequence, some rolls will fail to produce a
+result.
+
+Remark: The number of die rolls needed to generate a single
+character increases logarithmically with the number of
+characters: Less than 7 characters require 1 die per roll, less
+than 36 two, etc.  Some character numbers may produce a high
+failure rate (in particular values slightly above 6^n/2), which
+can double the (average) number of dice per successfuly generated
+character."
   :type '(alist
           :key-type (symbol :format "Name: %v" :value default)
           :value-type
@@ -868,6 +879,11 @@ for a named wordlist specified by ‘dw-named-wordlists’ or fall
 back to prompting for a file.  With prefix argument, ignore the
 presence of a default wordlist.
 
+For additional protection, you can append salt to your passphrase
+using ‘dw-salt’.  Salt serves as an additional countermeasure
+against the common case of attackers trying to crack multiple
+passphrases at once.
+
 Noninteractively, the optional second argument CHOOSE-WORDLIST
 serves the same purpose as the prefix argument.
 
@@ -895,6 +911,11 @@ region to use for passphrase generation."
 
 (defun dw-ranstring-region (start end)
   "Replace sequence of die rolls in region with a random character sequence.
+
+This command uses ‘dw-random-characters’ as a resource for sets
+of characters to generate a random string from.  You can use this
+function to generate a personal salt from die rolls.  See
+‘dw-salt’ for more on salt.
 
 If called from Lisp, the arguments START and END must specify the
 region to use for passphrase generation."
