@@ -180,6 +180,9 @@
     wordlist has been specified.  For more on default wordlists, see
     ~dw-named-wordlists~ [[#Customization][below]].
 
+    You can also set up a [[#dw-salt][salt]] string to append to each generated
+    passphrase (see link).
+
 *** ~dw-set-wordlist (&optional use-default)~
     Manually set a wordlist without invoking ~dw-passgen-region~, and
     regardless of whether a wordlist has been set for the current
@@ -193,8 +196,9 @@
     Generate a random character string from die rolls.  While this
     could in principle be used to generate regular strong passwords,
     it primarily serves as a minor convenience to, for example,
-    generate a unique [[#Salt][salt]].  You can customize sets of characters from
-    which random strings are generated via ~~
+    generate a unique [[#dw-salt][salt]].  You can customize sets of characters from
+    which random strings are generated via ~dw-random-characters~, which
+    see.
 
 ** Public functions
    =dw= uses very primitive data structures to hold wordlists and
@@ -394,11 +398,34 @@
 
 ** ~dw-salt~
   :PROPERTIES:
-  :CUSTOM_ID: Salt
+  :CUSTOM_ID: dw-salt
   :END:
 
+  Salt is a string of non-secret data to append to your passphrases.
+  It serves to prevent dictionary attacks, and makes it harder for
+  potential attackers to brute force multiple keys at once.
+
+  While it is not a good idea to use the same passphrase for
+  everything, it is best to use the same salt or everything, as it
+  frees precious mental real estate.  You can use a phone number, a
+  random string of characters, or anything else for this purpose, as
+  long as it is sufficiently unique.  In that sense, you can think of
+  a salt as you "signing" your passphrase.
+
+  On a more practical note, it is also a great way to fulfill those
+  pesky demands of some services to have a special character, a number
+  and an uppercase character in it without adding mental overhead.
 
 *** ~dw-use-salt~
+    This variable serves as a flag for whether you want your salt to
+    be automatically appended to a newly generated passphrase.  Of
+    course, if ~dw-salt~ is ~nil~, this variable has no effect.  The
+    following symbols have special meaning (with any other value being
+    equivalent to ~t~):
+
+    * ~t~: Always add the salt, without asking.
+    * ~prompt~: Ask whether to add salt after passphrase-generation.
+    * ~nil~: Never add salt.
 
 ** ~dw-random-characters~
 
