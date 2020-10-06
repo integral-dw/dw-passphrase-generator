@@ -259,7 +259,9 @@ Each element should be a dotted list of the form
 
 where NAME (a symbol) is a descriptive name for the STRING’s
 contents.  ‘dw-ranstring-region’ will prompt for these
-names (with completion).
+names (with completion).  Choosing the symbol ‘default’ as a name
+causes the particular string to always be the default value when
+prompted.
 
 LAX, if non-nil, does not enforce the length of STRING to be a
 power of 6.  As a consequence, some rolls will fail to produce a
@@ -801,10 +803,10 @@ governed by ‘dw-use-salt’, which see."
   (if dw-salt
       (cl-case dw-use-salt
         (prompt
-         (if (yes-or-no-p "Append salt? ")
+         (if (y-or-n-p "Append salt? ")
              (concat passphrase dw-passphrase-separator dw-salt)
            passphrase))
-        (nil
+        ((nil)
          passphrase)
         (t
          (concat passphrase dw-passphrase-separator dw-salt)))))

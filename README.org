@@ -495,7 +495,7 @@
   :CUSTOM_ID: NEWS
   :END:
 
-** =2020-10-05=
+** =2020-10-06=
    Version *1.0.0* is finally out!  The new version fixes a few glaring
    errors in random integer generation (passphrases remain unaffected,
    no worries), adds salt as an option upon passphrase generation and
