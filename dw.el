@@ -800,15 +800,14 @@ Whether this happens automatically or requires user input is
 governed by ‘dw-use-salt’, which see."
   (if dw-salt
       (cl-case dw-use-salt
-        (always
-         (concat passphrase dw-passphrase-separator dw-salt))
+        (prompt
+         (if (yes-or-no-p "Append salt? ")
+             (concat passphrase dw-passphrase-separator dw-salt)
+           passphrase))
         (nil
          passphrase)
         (t
-         (if (yes-or-no-p "Append salt? ")
-             (concat passphrase dw-passphrase-separator dw-salt)
-           passphrase)))
-    passphrase))
+         (concat passphrase dw-passphrase-separator dw-salt)))))
 
 (defvar dw--random-character-history nil
   "Minibuffer history for previously used generation strings.")
