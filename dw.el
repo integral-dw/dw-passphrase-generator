@@ -5,7 +5,7 @@
 ;; Author: D. Williams <d.williams@posteo.net>
 ;; Maintainer: D. Williams <d.williams@posteo.net>
 ;; Keywords: convenience, games
-;; Version: 1.0.0
+;; Version: 1.0.1
 ;; Homepage: https://github.com/integral-dw/dw-passphrase-generator
 ;; Package-Requires: ((emacs "25.1"))
 
@@ -809,7 +809,8 @@ governed by ‘dw-use-salt’, which see."
         ((nil)
          passphrase)
         (t
-         (concat passphrase dw-passphrase-separator dw-salt)))))
+         (concat passphrase dw-passphrase-separator dw-salt)))
+    passphrase))
 
 (defvar dw--random-character-history nil
   "Minibuffer history for previously used generation strings.")
