@@ -5,7 +5,7 @@
 ;; Author: D. Williams <d.williams@posteo.net>
 ;; Maintainer: D. Williams <d.williams@posteo.net>
 ;; Keywords: convenience, games
-;; Version: 1.0.1
+;; Version: 1.0.2
 ;; Homepage: https://github.com/integral-dw/dw-passphrase-generator
 ;; Package-Requires: ((emacs "25.1"))
 
@@ -836,6 +836,7 @@ Return a cons cell of the form (STRING . LAX), see ‘dw-random-characters’."
 
 
 ;;; Interactive commands
+;;;###autoload
 (defun dw-set-wordlist (&optional use-default)
   "Set a (named) wordlist for interactive passphrase generation.
 This function always returns nil.
@@ -911,6 +912,7 @@ region to use for passphrase generation."
     (insert passphrase)
     passphrase))
 
+;;;###autoload
 (defun dw-ranstring-region (start end)
   "Replace sequence of die rolls in region with a random character sequence.
 
