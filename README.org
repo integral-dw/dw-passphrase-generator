@@ -335,6 +335,15 @@
   3) /(optional)/ Set up ~dw-named-wordlists~ (see the section
      [[#Customization][Customization]] below).
 
+     If you do not wish to download extra files to use this package,
+     you can use the "preinstalled" word list from the [[https://www.eff.org/files/2016/07/18/eff_large_wordlist.txt][EFF]] by adding
+     the following to your configuration:
+
+     #+begin_src elisp
+       (with-eval-after-load 'dw
+         (setq-default dw-current-wordlist dw-eff-large))
+     #+end_src
+
 * Customization
   :PROPERTIES:
   :CUSTOM_ID: Customization
