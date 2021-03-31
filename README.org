@@ -9,8 +9,8 @@
   * [[#how-to-use-this-package][How to Use This Package]]
   * [[#Installation][Installation]]
   * [[#Customization][Customization]]
-  * [[#planned-features][Planned Features]]
   * [[#NEWS][NEWS]]
+  * [[#Archive][Archive]]
 
 * About
   :PROPERTIES:
@@ -482,26 +482,19 @@
    your security shifted elsewhere: /A fifth bolt on your front door
    won't do you any good if you keep your ground floor windows open./
 
-* Planned Features
-  :PROPERTIES:
-  :CUSTOM_ID: planned-features
-  :END:
-
-  This package has gone through a couple of iterations over the years.
-  I have been keeping variations of it around for probably almost as
-  long as I use Emacs.  If this package ever tried to teach me
-  anything, it is "less is more": Well, it should have tried harder.
-
-  +For now, there are two things on the schedule:+
-  + +add support for salt+ *done*.
-  + +add support for random char insertion+
-    - This feature has been scrapped for now.  There is very little
-      entropy gain on a per-character basis, to the point other
-      methods of increasing entropy are likely easier.
-
 * NEWS
   :PROPERTIES:
   :CUSTOM_ID: NEWS
+  :END:
+
+** =2021-04-01=
+   Version *1.1.0* has been released!  The new version added a
+   "preinstalled" internalized diceware wordlist ~dw-eff-large~, to
+   allow the package to be used in a more self-contained way.
+
+* Archive
+  :PROPERTIES:
+  :CUSTOM_ID: Archive
   :END:
 
 ** =2020-10-06=
